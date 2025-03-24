@@ -300,44 +300,6 @@ class TwoWindingTransformer(ElectricalElement):
         }
     
 class ThreeWindingTransformer:
-    """
-    A class that computes the per-unit impedances (and admittances)
-    of a three-winding transformer on a fixed 1 MVA base. Each winding
-    pair (AB, BC, CA) is treated like a 'delta' side.
-
-    Short-circuit data is given in percent (u_k_percent_XY),
-    and each pair has a rated power S_nom_XY. The formulas used here
-    convert that directly to p.u. on 1 MVA base.
-
-    Methods:
-        Z_ab(), Z_bc(), Z_ca(): return per-unit impedance on 1 MVA base.
-        Y_ab(), Y_bc(), Y_ca(): return per-unit admittance on 1 MVA base.
-        delta_admittance_matrix(): a 3x3 p.u. matrix (A,B,C) in delta form.
-
-    Example:
-        xfmr = ThreeWindingTransformer(
-            u_k_percent_AB=10.2,   # e.g. 10.2 %
-            u_k_percent_BC=11.1,
-            u_k_percent_CA=9.5,
-            S_nom_AB=150e6,       # 150 MVA or 150e6 VA
-            S_nom_BC=150e6,
-            S_nom_CA=150e6
-        )
-
-        # Per-unit impedances on 1 MVA base
-        Z_AB_pu = xfmr.Z_ab()
-        Z_BC_pu = xfmr.Z_bc()
-        Z_CA_pu = xfmr.Z_ca()
-
-        # Per-unit admittances
-        Y_AB_pu = xfmr.Y_ab()
-        Y_BC_pu = xfmr.Y_bc()
-        Y_CA_pu = xfmr.Y_ca()
-
-        # 3x3 delta Y-matrix in p.u.
-        Y_delta = xfmr.delta_admittance_matrix()
-    """
-
     def __init__(
         self,
         u_k_percent_AB,
@@ -351,32 +313,10 @@ class ThreeWindingTransformer:
         bus_MV,
         bus_LV,
     ):
-        """
-        Parameters
-        ----------
-        u_k_percent_AB : float
-            Short-circuit voltage (percent) for winding AB.
-        u_k_percent_BC : float
-            Short-circuit voltage (percent) for winding BC.
-        u_k_percent_CA : float
-            Short-circuit voltage (percent) for winding CA.
-
-        S_nom_AB : float
-            Nominal power for the AB winding (in VA or MVA).
-        S_nom_BC : float
-            Nominal power for the BC winding (in VA or MVA).
-        S_nom_CA : float
-            Nominal power for the CA winding (in VA or MVA).
-
-        Note: We'll assume S_nom_* is given in VA. If it's in MVA,
-        just supply e.g. 150 (for 150 MVA).
-        """
         self.u_k_percent_AB = u_k_percent_AB
         self.u_k_percent_BC = u_k_percent_BC
         self.u_k_percent_CA = u_k_percent_CA
 
-        # If user passes VA, just store them as floats.
-        # If they pass MVA, they'd do e.g. 150 => 150.0, which is 150 MVA.
         self.S_nom_AB = S_nom_AB
         self.S_nom_BC = S_nom_BC
         self.S_nom_CA = S_nom_CA

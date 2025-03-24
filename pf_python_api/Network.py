@@ -144,16 +144,6 @@ class Network:
             class_name = element.GetClassName()
             self.classified_elements.setdefault(class_name, []).append(element)
                 
-
-    def generate_unique_index(self, element_name: str, substation_name: str) -> int:
-        """
-        Generates a unique index for an element based on its name and substation name.
-        The index is a hash of the concatenated names, ensuring uniqueness.
-        """
-        unique_string = f"{substation_name}_{element_name}"
-        unique_index = hash(unique_string) % (10 ** 8)  # Modulo to limit the size of the index
-        return unique_index
-
     def obtain_elements_data(self):
         '''
         Converts classified elements from PF Objects to internal objects and stores them in self.<element_type>

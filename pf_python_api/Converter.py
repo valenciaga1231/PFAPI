@@ -212,9 +212,6 @@ class Converter:
             tap_position = transformer.GetAttribute("nntap")
             voltage_per_tap = transformer.GetAttribute("t:dutap")
 
-            if tap_position != 0:
-                print("Trafo: ", transformer.GetAttribute('loc_name'), " has tap position: ", tap_position, " and voltage per tap: ", voltage_per_tap)
-
             new_transformer = TwoWindingTransformer(
                 name=transformer.GetAttribute('loc_name'),
                 bus_from=bus_from_name,
