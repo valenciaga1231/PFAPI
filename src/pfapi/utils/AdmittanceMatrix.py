@@ -56,7 +56,7 @@ def build_admittance_matrix(network: Network, as_dataframe: bool = False):
         idx_from = network.busbar_name_to_index[transformer.busbar_from]   # HV
         idx_to = network.busbar_name_to_index[transformer.busbar_to]       # LV
 
-        Y_elements = transformer.get_admittance_matrix_elements()
+        Y_elements = transformer.get_admittance_matrix_elements(network.base_mva)
         # Diagonal elements
         Y_bus[idx_from, idx_from] += Y_elements['Y_aa'] * transformer.parallel   
         Y_bus[idx_to, idx_to] += Y_elements['Y_bb'] * transformer.parallel    
@@ -106,13 +106,13 @@ def build_admittance_matrix(network: Network, as_dataframe: bool = False):
 
     # Add External Grids to the admittance matrix
     for external_grid in network.external_grids:
-        idx = network.busbar_name_to_index[external_grid.bus_to]
+        idx = network.busbar_name_to_index[external_grid.busbar_to]
         Y = external_grid.Y
         Y_bus[idx, idx] += Y
 
     # Add Voltage Sources to the admittance matrix
     for voltage_source in network.voltage_sources:
-        idx = network.busbar_name_to_index[voltage_source.bus_to]
+        idx = network.busbar_name_to_index[voltage_source.busbar_to]
         Y = voltage_source.Y
         Y_bus[idx, idx] += Y
 

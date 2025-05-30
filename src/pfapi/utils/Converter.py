@@ -23,7 +23,7 @@ class Converter:
         return converted_busbars
 
     @staticmethod
-    def convert_lines(pf_lines: List[pf.DataObject], busbar_name_to_index: object) -> List[Line]:
+    def convert_lines(pf_lines: List[pf.DataObject], busbar_name_to_index: object, base_mva: float = 1.0) -> List[Line]:
         """
         Function converts PowerFactory ElmLne objects to Line objects
         """
@@ -93,13 +93,14 @@ class Converter:
                 reactance=X,
                 susceptance_effective=B1,
                 susceptance_ground=B0,
-                parallel=parallel
+                parallel=parallel,
+                base_mva=base_mva
             )
             lines.append(new_line)
         return lines
-    
+
     @staticmethod
-    def convert_synchronous_machines(machines: List[pf.DataObject]) -> List[SynchronousGenerator]:
+    def convert_synchronous_machines(machines: List[pf.DataObject], base_mva: float = 1.0) -> List[SynchronousGenerator]:
         generators: List[SynchronousGenerator] = []
         for machine in machines:
             # Get machine data
@@ -127,13 +128,14 @@ class Converter:
                 U_rat=machine_type.GetAttribute('ugn'),
                 r_a=machine_type.GetAttribute('rstr'),
                 x_as=machine_type.GetAttribute('xl'),
-                x_d1=machine_type.GetAttribute('xds')
+                x_d1=machine_type.GetAttribute('xds'),
+                base_mva=base_mva
             )
             generators.append(generator)
         return generators
-    
+
     @staticmethod
-    def convert_two_winding_transformers(pf_transformers: List[pf.DataObject]) -> List[TwoWindingTransformer]:
+    def convert_two_winding_transformers(pf_transformers: List[pf.DataObject], base_mva: float = 1.0) -> List[TwoWindingTransformer]:
         transformers: List[TwoWindingTransformer] = []
         for transformer in pf_transformers:
             connections = transformer.GetConnectedElements(1, 1, 1)
@@ -149,6 +151,7 @@ class Converter:
             busbar_HV_voltage = connected_bus_from.GetAttribute("uknom")
             busbar_LV_voltage = connected_bus_to.GetAttribute("uknom")
 
+            # Get 2 Winding transformer type
             trafo_type: pf.DataObject = transformer.GetAttribute("typ_id")
             rated_power = trafo_type.GetAttribute("strn")
             rated_voltage_HV = trafo_type.GetAttribute("utrn_h")
@@ -170,20 +173,20 @@ class Converter:
                 S_rat=rated_power,
                 U_k=u_k,
                 U_k_r=u_k_r,
-                phase_shift=phi_rad,
-                U_nominal_HV=busbar_HV_voltage,
+                phase_shift=phi_rad,                U_nominal_HV=busbar_HV_voltage,
                 U_nominal_LV=busbar_LV_voltage,
                 U_rated_HV=rated_voltage_HV,
                 U_rated_LV=rated_voltage_LV,
                 parallel=transformer.GetAttribute("ntnum"),
                 tap_position=tap_position,
-                voltage_per_tap=voltage_per_tap
+                voltage_per_tap=voltage_per_tap,
+                base_mva=base_mva
             )
             transformers.append(new_transformer)
         return transformers
-    
+
     @staticmethod
-    def convert_loads(pf_loads: List[pf.DataObject], load_flow_results: Dict[str, BusLoadFlowResult]) -> List[Load]:
+    def convert_loads(pf_loads: List[pf.DataObject], load_flow_results: Dict[str, BusLoadFlowResult], base_mva: float = 1.0) -> List[Load]:
         loads: List[Load] = []
         for load in pf_loads:
             connections = load.GetConnectedElements(1, 1, 1)
@@ -198,7 +201,7 @@ class Converter:
             scaling_factor = load.GetAttribute("scale0")
             P_init = P_init * scaling_factor
             Q_init = Q_init * scaling_factor
-
+            
             new_load = Load(
                 data_object=load,
                 name=load.GetAttribute('loc_name'),
@@ -206,13 +209,14 @@ class Converter:
                 type_name=None,
                 P=P_init,
                 Q=Q_init,
-                voltage=load_flow_results[bus_name].voltage
+                voltage=load_flow_results[bus_name].voltage,
+                base_mva=base_mva
             )
             loads.append(new_load)
         return loads
-    
+
     @staticmethod
-    def convert_switches(switches: List[pf.DataObject]) -> List[Switch]:
+    def convert_switches(switches: List[pf.DataObject], base_mva: float = 1.0) -> List[Switch]:
         switchs: List[Switch] = []
         for switch in switches:
             is_closed = switch.IsClosed() # type: ignore # 1 = closed, 0 = open
@@ -229,8 +233,6 @@ class Converter:
             if len(connections) != 2:
                 print("[WARNING] Switch has none more than 2 connection --> Switch: ", switch.GetAttribute('loc_name'))
                 continue
-            # connected_bus_from = connections[0]
-            # connected_bus_to = connections[1]
 
             cub_from_connection = cub_from.IsConnected(connected_bus_from, 1)
             cub_to_connection = cub_to.IsConnected(connected_bus_to, 1)
@@ -253,7 +255,6 @@ class Converter:
                 swith_type: pf.DataObject = switch.GetAttribute('typ_id')
                 on_resistance = swith_type.GetAttribute("R_on")
             except:
-                # on_resistance = 1e-12
                 on_resistance = 1e-6
 
             new_switch = Switch(
@@ -261,17 +262,16 @@ class Converter:
                 name=element_id,
                 connected_busbar_from=bus_from_name,
                 connected_busbar_to=bus_to_name,
-                # connected_busbar_from=Converter.generate_unique_busbar_name(bus_from_name, substation_name_from),
-                # connected_busbar_to=Converter.generate_unique_busbar_name(bus_to_name, substation_name_to),
                 type_name=switch.GetAttribute('typ_id'),
                 on_resistance=on_resistance,
-                voltage_level=voltage_level
+                voltage_level=voltage_level,
+                base_mva=base_mva
             )
             switchs.append(new_switch)
         return switchs
     
     @staticmethod
-    def convert_three_winding_transformers(pf_transformers: List[pf.DataObject]) -> List[ThreeWindingTransformer]:
+    def convert_three_winding_transformers(pf_transformers: List[pf.DataObject], base_mva: float = 1.0) -> List[ThreeWindingTransformer]:
         transformers: List[ThreeWindingTransformer] = []
 
         for transformer in pf_transformers:
@@ -312,9 +312,7 @@ class Converter:
 
             u_k_r_HV_to_MV = trafo_type.GetAttribute("uktrr3_h")
             u_k_r_MV_to_LV = trafo_type.GetAttribute("uktrr3_m")
-            u_k_r_HV_to_LV = trafo_type.GetAttribute("uktrr3_l")
-
-            # Get Phase Shift
+            u_k_r_HV_to_LV = trafo_type.GetAttribute("uktrr3_l")            # Get Phase Shift
             phase_shift_HV = trafo_type.GetAttribute("nt3ag_h")
             phase_shift_MV = trafo_type.GetAttribute("nt3ag_m")
             phase_shift_LV = trafo_type.GetAttribute("nt3ag_l")
@@ -335,24 +333,24 @@ class Converter:
                 S_nom_AB=rated_power_HV,
                 S_nom_BC=rated_power_MV,
                 S_nom_CA=rated_power_LV,
+                base_mva=base_mva
             )
             
             transformers.append(new_transformer)
         return transformers
-    
+
     @staticmethod
-    def convert_shunt_elements(pf_shunt_elements: List[pf.DataObject]) -> List[ShuntElement]:
+    def convert_shunt_elements(pf_shunt_elements: List[pf.DataObject], base_mva: float = 1.0) -> List[ShuntElement]:
         shunt_elements: List[ShuntElement] = []
         for shunt_element in pf_shunt_elements:
             # Check if shunt element in service
             is_in_service = shunt_element.GetAttribute("outserv")
             if is_in_service == 1:
-                continue
-
-            # Get shunt element data
+                continue            # Get shunt element data
             connected_terminal: pf.DataObject = shunt_element.GetAttribute("bus1")
             busbar_name = connected_terminal.GetParent().GetAttribute("loc_name")
             substation = connected_terminal.GetParent().GetAttribute("cpSubstat")
+            
             if substation is not None:
                 substation_name = substation.GetAttribute("loc_name")
             else:
@@ -364,16 +362,16 @@ class Converter:
             new_shunt_element = ShuntElement(
                 data_object=shunt_element,
                 name=shunt_element.GetAttribute('loc_name'),
-                # bus_to=Converter.generate_unique_busbar_name(busbar_name, substation_name),
                 bus_to=busbar_name,
-                U_rat = U_rat,
+                U_rat=U_rat,
                 shunt_type=shunt_type,
+                base_mva=base_mva
             )
             shunt_elements.append(new_shunt_element)
         return shunt_elements
     
     @staticmethod
-    def convert_external_grids(pf_external_grids: List[pf.DataObject]) -> List[ExternalGrid]:
+    def convert_external_grids(pf_external_grids: List[pf.DataObject], base_mva: float = 1.0) -> List[ExternalGrid]:
         external_grids: List[ExternalGrid] = []
         for external_grid in pf_external_grids:
             connections = external_grid.GetConnectedElements(1, 1, 1)
@@ -383,9 +381,7 @@ class Converter:
 
             connected_bus = connections[0]
             bus_name = connected_bus.GetAttribute("loc_name")
-            voltage_level = connected_bus.GetAttribute("uknom")
-
-            # Get Load-Flow data
+            voltage_level = connected_bus.GetAttribute("uknom")            # Get Load-Flow data
             S_sc = external_grid.GetAttribute("snss")
             c_factor = external_grid.GetAttribute("cmax")
             r_x_ratio = external_grid.GetAttribute("rntxn")
@@ -397,13 +393,14 @@ class Converter:
                 U_rat=voltage_level,
                 S_sc=S_sc,
                 c_factor=c_factor,
-                r_x_ratio=r_x_ratio
+                r_x_ratio=r_x_ratio,
+                base_mva=base_mva
             )
             external_grids.append(new_external_grid)
         return external_grids
     
     @staticmethod
-    def convert_voltage_source_AC(pf_voltage_sources_AC: List[pf.DataObject]) -> List[VoltageSourceAC]:
+    def convert_voltage_source_AC(pf_voltage_sources_AC: List[pf.DataObject], base_mva: float = 1.0) -> List[VoltageSourceAC]:
         voltage_sources: List[VoltageSourceAC] = []
         for voltage_source in pf_voltage_sources_AC:
             connections = voltage_source.GetConnectedElements(1, 1, 1)
@@ -414,9 +411,7 @@ class Converter:
             connected_bus = connections[0]
             bus_name = connected_bus.GetAttribute("loc_name")
 
-            U_rat = voltage_source.GetAttribute("Unom")
-
-            # Get Load-Flow data
+            U_rat = voltage_source.GetAttribute("Unom")            # Get Load-Flow data
             U_magnitude = voltage_source.GetAttribute("usetp") #?? Pomojem ne rabim
             U_angle = voltage_source.GetAttribute("phisetp") #?? Pomojem ne rabim
             R = voltage_source.GetAttribute("R1")
@@ -429,12 +424,13 @@ class Converter:
                 U_rat=U_rat,
                 R=R,
                 X=X,
+                base_mva=base_mva
             )
             voltage_sources.append(new_external_grid)
         return voltage_sources
 
     @staticmethod
-    def convert_common_impedances(pf_common_impedances: List[pf.DataObject]) -> List[CommonImpedance]:
+    def convert_common_impedances(pf_common_impedances: List[pf.DataObject], base_mva: float = 1.0) -> List[CommonImpedance]:
         common_impedances: List[CommonImpedance] = []
         for common_impedance in pf_common_impedances:
             # Check if external grid in service
@@ -480,6 +476,7 @@ class Converter:
                 S_rat=S_rat,
                 tap_ratio=tap_ratio,
                 phase_shift=phase_shift,
+                base_mva=base_mva
             )
             common_impedances.append(new_common_impedance)
         return common_impedances

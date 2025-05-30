@@ -2,18 +2,6 @@ from typing import Type, TypeVar, Union
 import numpy as np
 import powerfactory as pf
 from enum import Enum
-
-T = TypeVar('T')
-
-class ElectricalElement:
-    def __init__(self, data_object: pf.DataObject, name: str, connected_busbar_from: str | None, connected_busbar_to: str, type_name: str):
-        self.data_object = data_object  # PowerFactory data object, if available
-        # Basic element data
-        self.name = name                            # Unique name provided by PF
-        self.busbar_from = connected_busbar_from    # Connected busbar from
-        self.busbar_to = connected_busbar_to        # Connected busbar to
-        self.type = type_name                       # Type of the element
-
 class Busbar():
     def __init__(self, data_object: pf.DataObject, name: str, substation: str, id: int):
         self.data_object = data_object
@@ -22,9 +10,15 @@ class Busbar():
         self.name = name
         self.substation = substation
 
-class SynchronousGenerator(ElectricalElement):
-    def __init__(self, data_object: pf.DataObject, name, zone, connected_busbar, type_name, S_rat, U_rat, r_a, x_as, x_d1, S_base=1):
-        super().__init__(data_object, name, None, connected_busbar, type_name)
+class SynchronousGenerator():
+    def __init__(self, data_object: pf.DataObject, name, zone, connected_busbar, type_name, S_rat, U_rat, r_a, x_as, x_d1, base_mva: float = 1.0):
+        self.data_object = data_object  # PowerFactory data object, if available
+        # Basic element data
+        self.name = name                            # Unique name provided by PF
+        self.busbar_from = None                     # Connected busbar from
+        self.busbar_to = connected_busbar           # Connected busbar to
+        self.type = type_name                       # Type of the element
+        
         # Type Basic data
         self.S_rat = S_rat                                              # Rated Power           (MVA)
         self.U_rat = U_rat                                              # Rated Voltage         (kV)
@@ -36,8 +30,8 @@ class SynchronousGenerator(ElectricalElement):
         self.x_d1 = x_d1                                # Transient Reactance   X_d' [p.u]
 
         # Base values
-        self.S_base = S_base
-        self.Z_base = self.U_rat ** 2 / self.S_base
+        self.base_mva = base_mva
+        self.Z_base = self.U_rat ** 2 / self.base_mva
         self.Y_base = 1 / self.Z_base
 
         # Calculated parameters
@@ -62,9 +56,15 @@ class SynchronousGenerator(ElectricalElement):
         Y_sg = 1 / self.calculate_impedance()
         return Y_sg
     
-class Line(ElectricalElement):
-    def __init__(self, data_object: pf.DataObject, name, connected_busbar_from, connected_busbar_to, type_name, rated_voltage, length, resistance, reactance, susceptance_effective, susceptance_ground, parallel):
-        super().__init__(data_object, name, connected_busbar_from, connected_busbar_to, type_name)
+class Line():
+    def __init__(self, data_object: pf.DataObject, name, connected_busbar_from, connected_busbar_to, type_name, rated_voltage, length, resistance, reactance, susceptance_effective, susceptance_ground, parallel, base_mva=1.0):
+        self.data_object = data_object  # PowerFactory data object, if available
+        # Basic element data
+        self.name = name                            # Unique name provided by PF
+        self.busbar_from = connected_busbar_from    # Connected busbar from
+        self.busbar_to = connected_busbar_to        # Connected busbar to
+        self.type = type_name                       # Type of the element
+        
         # Element basic data
         self.length = length
         self.resistance = resistance                        # [Ohm]
@@ -75,12 +75,13 @@ class Line(ElectricalElement):
 
         # Type Basic data
         self.rated_voltage = rated_voltage
+        
+        # Base MVA for calculations
+        self.base_mva = base_mva        # Calculated parameters
+        self.Y_line = self.calculate_admittance(self.base_mva)
+        self.Y_shunt = self.calculate_shunt_admittance(self.base_mva)
 
-        # Calculated parameters
-        self.Y_line = self.calculate_admittance()
-        self.Y_shunt = self.calculate_shunt_admittance()
-
-    def calculate_impedance(self, base_mva=1):
+    def calculate_impedance(self, base_mva: float = 1.0):
         """
         Calculate the impedance of the line on the specified base MVA.
         """
@@ -88,7 +89,7 @@ class Line(ElectricalElement):
         x = self.reactance / (self.rated_voltage ** 2 / base_mva) # Calculate per unit reactance
         return (r + 1j * x)
     
-    def calculate_admittance(self, base_mva=1):
+    def calculate_admittance(self, base_mva: float = 1.0):
         """
         Calculate the admittance of the line on the specified base MVA.
         """
@@ -98,7 +99,7 @@ class Line(ElectricalElement):
         Y = 1 / Z
         return Y
     
-    def calculate_shunt_admittance(self, base_mva=1):
+    def calculate_shunt_admittance(self, base_mva: float = 1.0):
         """
         Calculate the shunt admittance of the line on the specified base MVA.
         """
@@ -106,9 +107,15 @@ class Line(ElectricalElement):
         b_ground = (self.susceptance_ground * 10**-6) / (base_mva / self.rated_voltage ** 2)
         return 1j * (b_effective + b_ground)
 
-class Switch(ElectricalElement):
-    def __init__(self, data_object: pf.DataObject, name, connected_busbar_from, connected_busbar_to, type_name, on_resistance, voltage_level, base_mva=1):
-        super().__init__(data_object, name, connected_busbar_from, connected_busbar_to, type_name)
+class Switch():
+    def __init__(self, data_object: pf.DataObject, name, connected_busbar_from, connected_busbar_to, type_name, on_resistance, voltage_level, base_mva: float = 1.0):
+        self.data_object = data_object  # PowerFactory data object, if available
+        # Basic element data
+        self.name = name                            # Unique name provided by PF
+        self.busbar_from = connected_busbar_from    # Connected busbar from
+        self.busbar_to = connected_busbar_to        # Connected busbar to
+        self.type = type_name                       # Type of the element
+        
         self.voltage_level = voltage_level
         self.on_resistance = on_resistance # [Ohm]
 
@@ -133,7 +140,7 @@ class Switch(ElectricalElement):
         Y = 1 / self.calculate_impedance()
         return Y
     
-class TwoWindingTransformer(ElectricalElement):
+class TwoWindingTransformer():
     """
     Represents a two-winding transformer in a power system network.
 
@@ -153,17 +160,21 @@ class TwoWindingTransformer(ElectricalElement):
         Y (complex): Transformer admittance on the system base.
         ratio (complex): Off-nominal tap ratio including phase shift.
     """
-    def __init__(self, data_object: pf.DataObject, name, bus_from, bus_to, type_name, S_rat, U_k, U_k_r, phase_shift, U_nominal_HV, U_nominal_LV, U_rated_HV, U_rated_LV, parallel, tap_position, voltage_per_tap):
+    def __init__(self, data_object: pf.DataObject, name, bus_from, bus_to, type_name, S_rat, U_k, U_k_r, phase_shift, U_nominal_HV, U_nominal_LV, U_rated_HV, U_rated_LV, parallel, tap_position, voltage_per_tap, base_mva: float = 1.0):
         """
         Initializes the TwoWindingTransformer instance with the provided parameters.
         """
-        super().__init__(data_object, name, bus_from, bus_to, type_name)
+        self.data_object = data_object  # PowerFactory data object, if available
+        # Basic element data
+        self.name = name                            # Unique name provided by PF
+        self.busbar_from = bus_from                 # Connected busbar from
+        self.busbar_to = bus_to                     # Connected busbar to
+        self.type = type_name                       # Type of the element
+        
         # Connected busbars voltages
         self.U_nominal_HV = U_nominal_HV    # U_nominal_HV [kV] Nominal voltage HV side
         self.U_nominal_LV = U_nominal_LV    # U_nominal_LV [kV] Nominal voltage LV side
-        self.parallel = parallel            # Parallel transformers
-
-        # Type parameters
+        self.parallel = parallel            # Parallel transformers        # Type parameters
         self.S_rat = S_rat                  # S_rat [MVA] Rated power
         self.U_k = U_k                      # U_k [%] Percentage short-circuit voltage
         self.U_k_r = U_k_r                  # U_k_r [%] Percentage short-circuit resistance voltage
@@ -173,14 +184,11 @@ class TwoWindingTransformer(ElectricalElement):
         self.tap_position = tap_position    # Tap position
         self.voltage_per_tap = voltage_per_tap # Voltage per tap
 
+        # Base MVA for calculations
+        self.base_mva = base_mva
+
         # Calculated parameters
-        Z_base_HV = self.U_rated_HV ** 2 / self.S_rat
-        Z_base_LV = self.U_rated_LV ** 2 / self.S_rat
-
-        self.Z_base = Z_base_HV
-        self.Y_base = 1 / self.Z_base
-
-        self.Y = self.calculate_admittance()
+        self.Y = self.calculate_admittance(self.base_mva)
         self.ratio = self.calculate_off_nominal_tap_ratio()
     
     def calculate_impedance(self, base_mva: float = 1.0) -> complex:
@@ -255,13 +263,13 @@ class TwoWindingTransformer(ElectricalElement):
         # Calculate the off-nominal tap ratio magnitude
         tap_ratio_magnitude = a_tr / a_sys
 
-        # Tap changer effect # TODO: Check if this is correctly applied
-        t = 1 + self.tap_position * self.voltage_per_tap / 100.0
-        tap_ratio = tap_ratio_magnitude * t * np.exp(1j * self.phase_shift)
+        return tap_ratio_magnitude
+    
+        # # Tap changer effect # TODO: Check if this is correctly applied
+        # t = 1 + self.tap_position * self.voltage_per_tap / 100.0
+        # tap_ratio = tap_ratio_magnitude * t * np.exp(1j * self.phase_shift)
 
         # return tap_ratio
-        return tap_ratio_magnitude # ! Use this for now.
-        return tap_ratio
     
     def get_admittance_matrix_elements(self, base_mva: float = 1.0):
         """
@@ -273,21 +281,6 @@ class TwoWindingTransformer(ElectricalElement):
         a_conj = np.conj(a)
         abs_a_squared = abs(a) ** 2
 
-        # if self.tap_side == "HV":
-        #     # Tap on HV ("from") side
-        #     Y_aa = Y / abs_a_squared
-        #     Y_bb = Y
-        #     Y_ab = - Y / a_conj
-        #     Y_ba = - Y / a
-        # elif self.tap_side == "LV":
-        #     # Tap on LV ("to") side
-        #     Y_aa = Y
-        #     Y_bb = Y / abs_a_squared
-        #     Y_ab = - Y / a
-        #     Y_ba = - Y / a_conj
-        # else:
-        #     raise ValueError("tap_side must be 'HV' or 'LV'")
-        
         Y_aa = Y / abs_a_squared
         Y_bb = Y
         Y_ab = - Y / a_conj
@@ -314,9 +307,14 @@ class ThreeWindingTransformer():
         bus_HV,
         bus_MV,
         bus_LV,
+        base_mva: float = 1.0
     ): 
         self.data_object = data_object
         self.name = name
+        self.busbar_from = None  # Three-winding transformers connect to 3 buses
+        self.busbar_to = None
+        self.type = "ThreeWindingTransformer"
+        
         # Type Basic data
         self.u_k_percent_AB = u_k_percent_AB
         self.u_k_percent_BC = u_k_percent_BC
@@ -330,11 +328,10 @@ class ThreeWindingTransformer():
         self.bus_HV = bus_HV
         self.bus_MV = bus_MV
         self.bus_LV = bus_LV
+        
+        # Base MVA support
+        self.base_mva = base_mva
 
-    #----------------------------------------------------------
-    # 1) Convert short-circuit % to per-unit on 1 MVA base
-    #    Z_xy(pu) = (u_k_percent_xy / 100) * (1 MVA / S_nom_xy)
-    #----------------------------------------------------------
     def Z_ab(self):
         """Per-unit impedance on a 1 MVA base, for the AB side."""
         # Convert S_nom_AB to MVA if given in VA
@@ -351,9 +348,6 @@ class ThreeWindingTransformer():
         S_nom_CA_MVA = self.S_nom_CA
         return (self.u_k_percent_CA / 100.0) * (1.0 / S_nom_CA_MVA)
 
-    #----------------------------------------------------------
-    # 2) Admittances Y_xy = 1 / Z_xy in the same p.u. system
-    #----------------------------------------------------------
     def Y_ab(self):
         Zab_pu = self.Z_ab()
         return 1.0 / Zab_pu if Zab_pu != 0 else np.inf
@@ -366,10 +360,6 @@ class ThreeWindingTransformer():
         Zca_pu = self.Z_ca()
         return 1.0 / Zca_pu if Zca_pu != 0 else np.inf
 
-    #----------------------------------------------------------
-    # 3) Optionally build a 3x3 delta Y-matrix in p.u.
-    #    Node ordering: A=0, B=1, C=2
-    #----------------------------------------------------------
     def delta_admittance_matrix(self):
         """
         Returns a 3x3 per-unit admittance matrix (on 1 MVA base)
@@ -407,22 +397,23 @@ class ShuntType(Enum):
     R_L_C1_C2_Rp = 4,
 
 class ShuntElement():
-    def __init__(self, data_object: pf.DataObject, name, bus_to, U_rat, shunt_type) -> None:
+    def __init__(self, data_object: pf.DataObject, name, bus_to, U_rat, shunt_type, base_mva: float = 1.0) -> None:
         self.data_object = data_object
         self.name = name
         self.U_rat = U_rat
         self.bus_to = bus_to
         self.shunt_type = shunt_type
-        self.Y = self.calculate_admittance()
+        self.base_mva = base_mva
+        self.Y = self.calculate_admittance(self.base_mva)
 
-    def calculate_admittance(self, base_mva=1):
+    def calculate_admittance(self, base_mva: float = 1.0):
         if self.shunt_type == ShuntType.R_L_C.value[0]:
             # Layout Parameters (per Step)
             B = self.data_object.GetAttribute("bcap")  # [uS]
             X = self.data_object.GetAttribute("xrea")  # [Ohm]
             R = self.data_object.GetAttribute("rrea")  # [Ohm]
             nr_active_step = self.data_object.GetAttribute("ncapa")  # integer
-            # TODO: Update parameters if step is different than 1 ??
+            # TODO: Update parameters if step is different than 1
 
             # Calculate conductance
             G = R / (R ** 2 + X ** 2)   # [S]
@@ -453,7 +444,6 @@ class ShuntElement():
             return Y_pu
         
         elif self.shunt_type == ShuntType.C.value[0]:
-            #!!!! WHAT TO DO IF ITS DC TYPE??? Since in slovenia ees there is only one C type and is DC
             B = self.data_object.GetAttribute("bcap")        # [uS]
             G_p = self.data_object.GetAttribute("gparac")    # [uS]
 
@@ -470,7 +460,7 @@ class ShuntElement():
         elif self.shunt_type == ShuntType.R_L_C1_C2_Rp.value[0]:
             # Get resonant frequency
             f_res = self.data_object.GetAttribute("fres")  # [Hz]
-            omega = 2 * np.pi * f_res #TODO: Check if f_res or f_nom here
+            omega = 2 * np.pi * f_res
             C1 = self.data_object.GetAttribute("c1")     # [uF]
             B1 = omega * C1 * 10 ** -6
             C2 = self.data_object.GetAttribute("c2")     # [uF]
@@ -491,7 +481,7 @@ class ShuntElement():
 
             # Calculate total admittance
             # Y = Y_branch + Y_p
-            Y = (Y_branch + Y_p) * Y_c2 / (Y_branch + Y_p + Y_c2) #??????
+            Y = (Y_branch + Y_p) * Y_c2 / (Y_branch + Y_p + Y_c2) # TODO
 
             # Convert to system base
             Y_base = base_mva / (self.U_rat ** 2)
@@ -500,18 +490,25 @@ class ShuntElement():
         else:
             raise ValueError("Invalid shunt type. Must be 'capacitor' or 'reactor'.")
 
-class Load(ElectricalElement):
-    def __init__(self, data_object: pf.DataObject, name, connected_busbar, type_name, P, Q, voltage):
-        super().__init__(data_object, name, None, connected_busbar, type_name)
+class Load():
+    def __init__(self, data_object: pf.DataObject, name, connected_busbar, type_name, P, Q, voltage, base_mva: float = 1.0):
+        self.data_object = data_object  # PowerFactory data object, if available
+        # Basic element data
+        self.name = name                            # Unique name provided by PF
+        self.busbar_from = None                     # Connected busbar from
+        self.busbar_to = connected_busbar           # Connected busbar to
+        self.type = type_name                       # Type of the element
+        
         self.P = P
         self.Q = Q
         self.voltage = voltage
-        self.Y = self.calculate_admittance()
+        self.base_mva = base_mva
+        self.Y = self.calculate_admittance(self.base_mva)
 
-    def calculate_power(self, base_mva=1):
+    def calculate_power(self, base_mva: float = 1.0):
         return self.P/base_mva - 1j * self.Q/base_mva
     
-    def calculate_admittance(self, base_mva=1):
+    def calculate_admittance(self, base_mva: float = 1.0):
         S = self.calculate_power(base_mva)
         voltage = self.voltage
         Y = S / (voltage ** 2)
@@ -521,7 +518,7 @@ class CommonImpedance():
     '''
     This is simplified model of a Two-Winding Transformer. It is used to model the impedance between two buses.
     '''
-    def __init__(self, data_object: pf.DataObject, name, bus_from, bus_to, R, X, U_nominal_HV, U_nominal_LV, S_rat, tap_ratio, phase_shift, S_base=1):
+    def __init__(self, data_object: pf.DataObject, name, bus_from, bus_to, R, X, U_nominal_HV, U_nominal_LV, S_rat, tap_ratio, phase_shift, base_mva: float = 1.0):
         # TODO: If tap-ratio and phase shift are not 1 and 0, respectively, then the impedance should be calculated differently
         self.data_object = data_object
         self.name = name
@@ -536,8 +533,8 @@ class CommonImpedance():
         self.phase_shift = phase_shift
 
         # Calculate base parameters
-        self.S_base = S_base
-        self.Z_base = (self.U_nom_HV ** 2) / self.S_base  # [Ohm]
+        self.base_mva = base_mva
+        self.Z_base = (self.U_nom_HV ** 2) / self.base_mva  # [Ohm]
         self.Y_base = 1 / self.Z_base                     # [S]
 
         # Calculate admittance
@@ -563,17 +560,20 @@ class CommonImpedance():
         return Y
 
 class ExternalGrid():
-    def __init__(self, data_object: pf.DataObject, name, connected_busbar, U_rat, S_sc, c_factor, r_x_ratio, S_base = 1):
+    def __init__(self, data_object: pf.DataObject, name, connected_busbar, U_rat, S_sc, c_factor, r_x_ratio, base_mva: float = 1.0):
         self.data_object = data_object
         self.name = name
-        self.bus_to = connected_busbar
+        self.busbar_from = None
+        self.busbar_to = connected_busbar
+        self.type = "ExternalGrid"
         self.U_rat = U_rat
         self.S_sc = S_sc
         self.c_factor = c_factor
         self.R_X = r_x_ratio
 
         # Calculate base parameters
-        self.S_base = S_base
+        self.base_mva = base_mva
+        self.S_base = base_mva
         self.Z_base = (self.U_rat ** 2) / self.S_base
         self.Y_base = 1 / self.Z_base
 
@@ -592,16 +592,19 @@ class ExternalGrid():
         return 1 / Z
 
 class VoltageSourceAC():
-    def __init__(self, data_object: pf.DataObject, name, connected_busbar, U_rat, R, X, S_base = 1):
+    def __init__(self, data_object: pf.DataObject, name, connected_busbar, U_rat, R, X, base_mva: float = 1.0):
         self.data_object = data_object
         self.name = name
-        self.bus_to = connected_busbar
+        self.busbar_from = None
+        self.busbar_to = connected_busbar
+        self.type = "VoltageSourceAC"
         self.U_rat = U_rat
         self.R = R # [Ohm]
         self.X = X # [Ohm]
 
         # Calculate base parameters
-        self.S_base = S_base
+        self.base_mva = base_mva
+        self.S_base = base_mva
         self.Z_base = (self.U_rat ** 2) / self.S_base
         self.Y_base = 1 / self.Z_base
 

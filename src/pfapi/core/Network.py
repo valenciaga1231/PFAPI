@@ -18,9 +18,11 @@ class Network:
     BUSBAR_TYPE_BUSBAR = 0
     BUSBAR_TYPE_JUNCTION_NODE = 1
     ACCEPTED_BUSBAR_TYPES = {BUSBAR_TYPE_BUSBAR, BUSBAR_TYPE_JUNCTION_NODE}
+    base_mva = 100.0  # Base MVA for the network, can be adjusted as needed
 
-    def __init__(self, app: Optional[pf.Application] = None) -> None:
+    def __init__(self, app: Optional[pf.Application] = None, base_mva: float = 100.0) -> None:
         """Initialize Network instance."""
+        self.base_mva = base_mva
         # Initialize data structures
         self._initialize_data_structures()
         
@@ -175,14 +177,14 @@ class Network:
                     logger.warning(f"Error reading {element_class}: {e}")
                     self.classified_elements[element_class] = []
             
-            logger.debug(f"Successfully read {total_elements} classified elements directly")
+            logger.info(f"Successfully read {total_elements} classified elements from PF")
             
-            # Log classified element counts if logger level is DEBUG or lower
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug("Classified element counts:")
+            # Log classified element counts if logger level is INFO or lower
+            if logger.isEnabledFor(logging.INFO):
+                logger.info("Classified element counts:")
                 for element_type, elements_list in self.classified_elements.items():
                     if elements_list:  # Only log if there are elements of this type
-                        logger.debug(f"  {element_type}: {len(elements_list)}")
+                        logger.info(f"  {element_type}: {len(elements_list)}")
             
             if total_elements == 0:
                 logger.warning("No classified elements found in the network")
@@ -198,18 +200,19 @@ class Network:
         logger.debug("Converting classified elements to internal objects...")
 
         # Convert supported classified elements to internal objects
-        self.lines = Converter.convert_lines(self.classified_elements['ElmLne'], self.busbar_name_to_index)
-        self.loads = Converter.convert_loads(self.classified_elements['ElmLod'], self.load_flow_results)
-        self.switchs = Converter.convert_switches(self.classified_elements['ElmCoup'])
-        self.two_winding_transformers = Converter.convert_two_winding_transformers(self.classified_elements['ElmTr2'])
-        self.three_winding_transformers = Converter.convert_three_winding_transformers(self.classified_elements['ElmTr3'])
-        self.synchronous_machines = Converter.convert_synchronous_machines(self.classified_elements['ElmSym'])
-        self.common_impedances = Converter.convert_common_impedances(self.classified_elements['ElmZpu'])
-        self.external_grids = Converter.convert_external_grids(self.classified_elements['ElmXnet'])
-        self.voltage_sources = Converter.convert_voltage_source_AC(self.classified_elements['ElmVac'])
-        self.shunts = Converter.convert_shunt_elements(self.classified_elements['ElmShnt'])
+        self.lines = Converter.convert_lines(self.classified_elements['ElmLne'], self.busbar_name_to_index, base_mva=self.base_mva)
+        self.loads = Converter.convert_loads(self.classified_elements['ElmLod'], self.load_flow_results, base_mva=self.base_mva)
+        self.switchs = Converter.convert_switches(self.classified_elements['ElmCoup'], base_mva=self.base_mva)
+        self.two_winding_transformers = Converter.convert_two_winding_transformers(self.classified_elements['ElmTr2'], base_mva=self.base_mva)
+        self.three_winding_transformers = Converter.convert_three_winding_transformers(self.classified_elements['ElmTr3'], base_mva=self.base_mva)
+        self.synchronous_machines = Converter.convert_synchronous_machines(self.classified_elements['ElmSym'], base_mva=self.base_mva)
+        self.common_impedances = Converter.convert_common_impedances(self.classified_elements['ElmZpu'], base_mva=self.base_mva)
+        self.external_grids = Converter.convert_external_grids(self.classified_elements['ElmXnet'], base_mva=self.base_mva)
+        self.voltage_sources = Converter.convert_voltage_source_AC(self.classified_elements['ElmVac'], base_mva=self.base_mva)
+        self.shunts = Converter.convert_shunt_elements(self.classified_elements['ElmShnt'], base_mva=self.base_mva)
 
     def _init_classified_elements(self) -> Dict[str, List[pf.DataObject]]:
+        # Only supported elements are initialized here
         return {
             'ElmLne': [],       # Lines
             'ElmTr2': [],       # Transformers 2-Winding
@@ -218,19 +221,9 @@ class Network:
             'ElmSym': [],       # Synchronous Machines
             'ElmCoup': [],      # Switches
             'ElmZpu': [],       # Common impedance
-            'ElmSind': [],      # Series reactors
-            'ElmScap': [],      # Series capacitors
-            'ElmBranch': [],    # Branch elements
             'ElmVac': [],       # AC Voltage Source
-            'ElmSssc': [],      # Static Synchronous Series Compensator
-            'ElmShnt': [],      # Switchable Shunt
-            'ElmSubmodcon': [], # Submodule Connector
-            'ElmVacbin': [],    # Binary AC Voltage Source
-            'ElmVscmono': [],   # PWM Converter
-            'ElmGenstat': [],   # Static generator
-            'ElmSvs': [],       # Static Var System
+            'ElmShnt': [],      # Switchable Shunt # Partial supoport
             'ElmXnet': [],      # External grid
-            'ElmIac': [],       # AC Current Source
         }
 
     def read_load_flow_results(self, app: pf.Application) -> None:

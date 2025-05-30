@@ -1,0 +1,106 @@
+# About the tool
+
+This tool provides a Python interface for building admittance matrices from PowerFactory network models for stability analysis. The PFAPI simplifies the process of extracting network topology, reading element parameters, and constructing system matrices for power system analysis.
+
+## Overview
+
+The PowerFactory API tool reads network data from DIgSILENT PowerFactory models and converts them into structured Python objects that can be used for various power system analyses. The primary functionality includes:
+
+- Reading network topology and busbar information
+- Extracting electrical parameters of network elements
+- Building complete admittance matrices (Y-bus)
+- Supporting reduced network analysis (generator buses only) by Kron's reduction
+- Calculating synchronizing power coefficients
+
+
+## Getting Started
+
+### Prerequisites
+
+- DIgSILENT PowerFactory installed on your system
+- Python 3.8 or higher
+- Required Python packages (see `requirements.txt`)
+
+### Installation
+
+1. Clone or download this repository
+2. Install required dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+3. Update the PowerFactory Python API path in your scripts (see examples)
+
+### Quick Start Example
+
+Check the `examples` folder to get started:
+
+1. **Update PowerFactory API Path**: Before running any examples, update the PowerFactory Python API path in the first cell of `examples/39bus_system_Ybus.ipynb`:
+   
+   ```python
+   # Update this path to match your PowerFactory installation
+   sys.path.append("C:/Program Files/DIgSILENT/PowerFactory 2024 SP4A/Python/3.12")
+   ```
+
+2. **Run the Example**: Open and run `examples/39bus_system_Ybus.ipynb` to see how to:
+   - Initialize PowerFactory connection
+   - Import network models
+   - Build admittance matrices
+   - Calculate synchronizing power coefficients
+
+## Supported Network Elements
+
+The PFAPI currently supports the following PowerFactory network elements:
+
+### Element Classification
+
+The tool automatically reads and classifies PowerFactory elements:
+- `ElmLne`: Lines
+- `ElmTr2`: Two-winding transformers
+- `ElmTr3`: Three-winding transformers
+- `ElmLod`: Loads
+- `ElmSym`: Synchronous machines
+- `ElmCoup`: Switches/couplers
+- `ElmZpu`: Common impedance elements
+- `ElmVac`: AC voltage sources
+- `ElmShnt`: Shunt elements (partial)
+- `ElmXnet`: External grids
+
+## Key Features
+
+### Admittance Matrix Construction
+- Full network Y-bus matrix
+- Support for complex network topologies
+- Automatic handling of parallel elements
+- Per-unit conversion with configurable base MVA
+
+### Network Analysis
+- Bus connectivity analysis
+- Generator bus identification
+- Load flow result integration
+- Matrix reduction for specific studies
+
+### Synchronizing Power Coefficients
+- Calculate power distribution ratios for generator outages
+- Support for dynamic stability analysis
+- Integration with reduced network models
+
+## Project Structure
+
+```
+PFAPI/
+├── src/pfapi/
+│   ├── core/
+│   │   ├── Network.py                 # Main network reader class
+│   │   └── synchro_power_coefficients.py  # Power coefficient calculations
+│   └── utils/
+│       ├── Elements.py                # Network element definitions
+│       ├── AdmittanceMatrix.py        # Y-bus construction utilities
+│       ├── Converter.py               # PF to internal object conversion
+│       ├── ImportModels.py            # Model import utilities
+│       └── LoadFlowResults.py         # Load flow data handling
+├── examples/
+│   ├── 39bus_system_Ybus.ipynb       # Main example notebook
+│   └── grid_models/
+│       └── 39 Bus New England System.pfd  # Test network model
+└── requirements.txt                   # Python dependencies
+```
