@@ -1,6 +1,6 @@
 # About the tool
 
-This tool provides a Python interface for building admittance matrices from PowerFactory network models for stability analysis. The PFAPI simplifies the process of extracting network topology, reading element parameters, and constructing system matrices for power system analysis.
+This tool provides a Python interface for building admittance matrices from PowerFactory network models for stability analysis. Tool simplifies the process of extracting network topology, reading element parameters, and constructing system matrices for power system stability analysis.
 
 ## Overview
 
