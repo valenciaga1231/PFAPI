@@ -34,14 +34,14 @@ The PowerFactory API tool reads network data from DIgSILENT PowerFactory models 
 
 Check the `examples` folder to get started:
 
-1. **Update PowerFactory API Path**: Before running any examples, update the PowerFactory Python API path in the first cell of `examples/39bus_system_Ybus.ipynb`:
+1. **Update PowerFactory API Path**: Before running any examples, update the PowerFactory Python API path in the first cell of `examples/example_Ybus.ipynb`:
    
    ```python
    # Update this path to match your PowerFactory installation
    sys.path.append("C:/Program Files/DIgSILENT/PowerFactory 2024 SP4A/Python/3.12")
    ```
 
-2. **Run the Example**: Open and run `examples/39bus_system_Ybus.ipynb` to see how to:
+2. **Run the Example**: Open and run `examples/example_Ybus.ipynb` to see how to:
    - Initialize PowerFactory connection
    - Import network models
    - Build admittance matrices
@@ -65,42 +65,29 @@ The tool automatically reads and classifies PowerFactory elements:
 - `ElmShnt`: Shunt elements (partial)
 - `ElmXnet`: External grids
 
-## Key Features
-
-### Admittance Matrix Construction
-- Full network Y-bus matrix
-- Support for complex network topologies
-- Automatic handling of parallel elements
-- Per-unit conversion with configurable base MVA
-
-### Network Analysis
-- Bus connectivity analysis
-- Generator bus identification
-- Load flow result integration
-- Matrix reduction for specific studies
-
-### Synchronizing Power Coefficients
-- Calculate power distribution ratios for generator outages
-- Support for dynamic stability analysis
-- Integration with reduced network models
-
 ## Project Structure
 
 ```
 PFAPI/
+├── README.md                          # Project documentation
+├── requirements.txt                   # Python dependencies
 ├── src/pfapi/
+│   ├── __init__.py
 │   ├── core/
+│   │   ├── __init__.py
 │   │   ├── Network.py                 # Main network reader class
 │   │   └── synchro_power_coefficients.py  # Power coefficient calculations
 │   └── utils/
-│       ├── Elements.py                # Network element definitions
 │       ├── AdmittanceMatrix.py        # Y-bus construction utilities
 │       ├── Converter.py               # PF to internal object conversion
+│       ├── Elements.py                # Network element definitions
 │       ├── ImportModels.py            # Model import utilities
 │       └── LoadFlowResults.py         # Load flow data handling
-├── examples/
-│   ├── 39bus_system_Ybus.ipynb       # Main example notebook
-│   └── grid_models/
-│       └── 39 Bus New England System.pfd  # Test network model
-└── requirements.txt                   # Python dependencies
+└── examples/
+    ├── example_Ybus.ipynb             # Example script
+    └── grid_models/
+        ├── 39 Bus New England System.pfd    # IEEE 39-bus test system
+        ├── Meshed Network.pfd               # Meshed network example
+        ├── Radial System.pfd                # Radial network example
+        └── Simple Mesh 5-bus.pfd            # Simple 5-bus test case
 ```
