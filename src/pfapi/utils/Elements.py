@@ -11,7 +11,7 @@ class Busbar():
         self.substation = substation
 
 class SynchronousGenerator():
-    def __init__(self, data_object: pf.DataObject, name, zone, connected_busbar, type_name, S_rat, U_rat, r_a, x_as, x_d1, base_mva: float = 1.0):
+    def __init__(self, data_object: pf.DataObject, name, zone, connected_busbar, type_name, S_rat, U_rat, r_a, x_as, x_d1, x_d2, base_mva: float = 1.0):
         self.data_object = data_object  # PowerFactory data object, if available
         # Basic element data
         self.name = name                            # Unique name provided by PF
@@ -28,6 +28,7 @@ class SynchronousGenerator():
         self.r_a = r_a                                  # Armature Resistance   R_a [p.u]
         self.x_as = x_as                                # Leakage Reactance     X_l [p.u]
         self.x_d1 = x_d1                                # Transient Reactance   X_d' [p.u]
+        self.x_d2 = x_d2                                # Subtransient Reactance X_d'' [p.u]
 
         # Base values
         self.base_mva = base_mva
@@ -44,8 +45,20 @@ class SynchronousGenerator():
         """
         Calculate the impedance of the generator in units values
         """
+        # Read generator RMS model
+        genType = self.data_object.GetAttribute("typ_id")
+        generatorRMSModel = genType.GetAttribute("model_inp")
+
+        # Handle Classical (cls) or Standard model (det)
+        if (generatorRMSModel == "cls"):
+            Z_G = 1j*(self.data_object.GetAttribute("typ_id").GetAttribute("xstr"))    # [p.u] impedance on Generator base
+        elif (generatorRMSModel == "det"):
+            # Use subtransient reactance for standard model
+            Z_G = self.r_a + 1j*(self.x_d2)    # [p.u] impedance on Generator base
+        else:
+            raise ValueError(f"Unsupported generator RMS model: {generatorRMSModel}")
+            
         # Conver to normal units values
-        Z_G = self.r_a + 1j*(self.x_as + self.x_d1)    # [p.u] impedance on Generator base
         Z_G = Z_G * (self.U_rat ** 2 / self.S_rat)     # [Ohm] impedance
         return Z_G
 

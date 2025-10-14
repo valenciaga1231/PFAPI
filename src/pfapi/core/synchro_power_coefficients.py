@@ -18,6 +18,9 @@ def calculate_power_distribution_ratios(Y_reduced, generator_bus_names_order: li
     P_gens, Q_gens = obtain_generator_power(network, generator_bus_names_order)
     E_gens, E_abs, E_angle = calculate_generators_internal_voltage_and_angle(V_gens, Z_gens, P_gens, Q_gens)
 
+    E_abs = E_abs.reshape(-1, 1)
+    E_angle = E_angle.reshape(-1, 1)
+
     # ------ Calculate synchronizing power coefficients ------
     # Find the index of the disturbance bus based on the generator name
     dist_bus_name = next((gen.busbar_to for gen in network.synchronous_machines if gen.name == gen_out_name), None)
@@ -26,10 +29,10 @@ def calculate_power_distribution_ratios(Y_reduced, generator_bus_names_order: li
     dist_bus = generator_bus_names_order.index(dist_bus_name) # Disturbance bus index
     logging.info(f"Calculating synchronizing power coefficients for disturbance bus: {dist_bus_name} at index {dist_bus}")
 
-    # Create the coefficient matrix K
     K = (np.ones(Y_reduced.shape) * E_abs[dist_bus] * E_abs *
-        (B_K * np.cos(np.deg2rad(E_angle - np.ones(Y_reduced.shape)*E_angle[dist_bus])) -
-        G_K * np.sin(np.deg2rad(E_angle - np.ones(Y_reduced.shape)*E_angle[dist_bus]))))
+        (B_K * np.cos(E_angle - np.ones(Y_reduced.shape) * E_angle[dist_bus]) -
+         G_K * np.sin(E_angle - np.ones(Y_reduced.shape) * E_angle[dist_bus])))
+    
     K[np.isnan(K)] = 0 # Replace NaN values with zero
 
     # Reference is SG bus
@@ -73,10 +76,13 @@ def obtain_generator_power(network: Network, generator_bus_names_order: list[str
             gen_bus_name = connected_terminal.GetParent().GetAttribute("loc_name")
 
             if gen_bus_name == bus_name:
+                typ = gen.typ_id
+                rat_power = typ.GetAttribute('sgn')
+
                 P = gen.GetAttribute("m:P:bus1")
                 Q = gen.GetAttribute("m:Q:bus1")
-                P_gens[i] = P
-                Q_gens[i] = Q
+                P_gens[i] = P/rat_power # [p.u.]
+                Q_gens[i] = Q/rat_power # [p.u.]
                 break
 
     return P_gens, Q_gens

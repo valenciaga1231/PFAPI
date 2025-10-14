@@ -129,6 +129,7 @@ class Converter:
                 r_a=machine_type.GetAttribute('rstr'),
                 x_as=machine_type.GetAttribute('xl'),
                 x_d1=machine_type.GetAttribute('xds'),
+                x_d2=machine_type.GetAttribute('xdss'),
                 base_mva=base_mva
             )
             generators.append(generator)
