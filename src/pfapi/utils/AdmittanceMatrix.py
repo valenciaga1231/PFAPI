@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-def build_admittance_matrix(network: Network, as_dataframe: bool = False):
+def build_admittance_matrix(network: "Network", as_dataframe: bool = False):
     # Initialize the admittance matrix shape
     Y_bus = np.zeros((len(network.busbars), len(network.busbars)), dtype=complex)
 
