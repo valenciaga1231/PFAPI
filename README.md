@@ -30,6 +30,16 @@ The PowerFactory API tool reads network data from DIgSILENT PowerFactory models 
    ```
 3. Update the PowerFactory Python API path in your scripts (see examples)
 
+### Install as a pip package from GitHub
+
+You can also install this library directly as a pip package from GitHub:
+
+```bash
+pip install git+https://github.com/valenciaga1231/PFAPI.git
+```
+
+This will always install the latest version from the repository.
+
 ### Quick Start Example
 
 Check the `examples` folder to get started:
