@@ -76,7 +76,7 @@ def obtain_generator_power(network: Network, generator_bus_names_order: list[str
             gen_bus_name = connected_terminal.GetParent().GetAttribute("loc_name")
 
             if gen_bus_name == bus_name:
-                typ = gen.typ_id
+                typ = gen.typ_id # type: ignore
                 rat_power = typ.GetAttribute('sgn')
 
                 P = gen.GetAttribute("m:P:bus1")

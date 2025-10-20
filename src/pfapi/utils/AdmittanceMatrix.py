@@ -1,7 +1,12 @@
-from ..core.Network import Network
+from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 import logging
+
+# Import Network for type checking to avoid circular imports
+if TYPE_CHECKING:
+    from ..core.Network import Network
+
 logger = logging.getLogger(__name__)
 
 def build_admittance_matrix(network: Network, as_dataframe: bool = False):
@@ -128,7 +133,7 @@ def build_admittance_matrix(network: Network, as_dataframe: bool = False):
     
     return Y_bus
 
-def reduce_matrix(Y_bus: np.ndarray, network: Network):
+def reduce_matrix(Y_bus: np.ndarray, network: "Network"):
     '''
     Reduces the admittance matrix Y_bus by eliminating non-generator buses. This is done by:
     1. Extending the admittance matrix to add apparent generator buses
