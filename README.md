@@ -12,7 +12,6 @@ The PowerFactory API tool reads network data from DIgSILENT PowerFactory models 
 - Supporting reduced network analysis (generator buses only) by Kron's reduction
 - Calculating synchronizing power coefficients
 
-
 ## Getting Started
 
 ### Prerequisites
@@ -40,12 +39,42 @@ pip install git+https://github.com/valenciaga1231/PFAPI.git
 
 This will always install the latest version from the repository.
 
+```python
+# Example: using the Network object to build Y-bus
+import sys
+# If needed, add PowerFactory python path:
+sys.path.append(r"C:\Program Files\DIgSILENT\PowerFactory 2024 SP4A\Python\3.12")
+
+import powerfactory as pf
+from pfapi.core.Network import Network
+
+# Initialize PowerFactory application and import 39-bus system model for this example
+app: pf.Application = pf.GetApplicationExt()
+app.Show()
+
+# Initialize the Network object (reads topology and connected components)
+try:
+    app.Hide()  # Hide the PowerFactory GUI for cleaner output
+    network = Network(app, base_mva=100.0)
+except Exception as e:
+    print("Failed to initialize the network. Ensure that the PowerFactory model is loaded correctly.")
+    print(e)
+    app.Show()  # Show the GUI again if initialization fails
+app.Show()
+
+# Obtain network admittance matrix
+from pfapi.utils.AdmittanceMatrix import build_admittance_matrix
+import pandas as pd
+Y_bus = build_admittance_matrix(network, as_dataframe=True)
+Y_bus.head(10) if isinstance(Y_bus, pd.DataFrame) else None
+```
+
 ### Quick Start Example
 
 Check the `examples` folder to get started:
 
 1. **Update PowerFactory API Path**: Before running any examples, update the PowerFactory Python API path in the first cell of `examples/example_Ybus.ipynb`:
-   
+
    ```python
    # Update this path to match your PowerFactory installation
    sys.path.append("C:/Program Files/DIgSILENT/PowerFactory 2024 SP4A/Python/3.12")
@@ -64,6 +93,7 @@ The PFAPI currently supports the following PowerFactory network elements:
 ### Element Classification
 
 The tool automatically reads and classifies PowerFactory elements:
+
 - `ElmLne`: Lines
 - `ElmTr2`: Two-winding transformers
 - `ElmTr3`: Three-winding transformers
